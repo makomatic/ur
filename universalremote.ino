@@ -9,8 +9,10 @@
                     
 int wakePin = 2; // pin used for waking up
 int irReceivePin = 4;
-int irSendPin = 5;
+//int irSendPin = 5; -> this is predefined by the irlib:
+                        //TIMER_2 always uses Pin9 at mega2560
 int statusLedPin = 13;
+int buttonPin = 6;
 // struct buttonmatrix{} -> TODO: Buy Button Matrix :)
 int sleepStatus = 0;             // variable to store a request for sleep
 int count = 0;                   // counter
@@ -232,12 +234,32 @@ void configButton()
   delay(100);
   configuration.b1 = Serial.read();
 }
- 
+
 void loop()
 {
-  int buttonState = LOW;
+  // If button pressed, send the code.
+  int buttonState = digitalRead(buttonPin);
+  if (lastButtonState == HIGH && buttonState == LOW) {
+    Serial.println("Released");
+    irrecv.enableIRIn(); // Re-enable receiver
+  }
+
+  if (buttonState) {
+    Serial.println("Pressed, sending");
+    digitalWrite(statusLedPin, HIGH);
+    sendCode(lastButtonState == buttonState);
+    digitalWrite(statusLedPin, LOW);
+    delay(50); // Wait a bit between retransmissions
+  } 
+  else if (irrecv.decode(&results)) {
+    digitalWrite(statusLedPin, HIGH);
+    storeCode(&results);
+    irrecv.resume(); // resume receiver
+    digitalWrite(statusLedPin, LOW);
+  }
+  lastButtonState = buttonState;
+  
   count++;
-  delay(1000);
   // compute the serial input
   if (Serial.available()) {
     int val = Serial.read();
@@ -259,11 +281,11 @@ void loop()
     }
   }
  
-  if (count >= 60) {
+  if (count >= 600) {
       Serial.println("Timer: Entering Sleep mode");
       delay(100);
       count = 0;
       sleepNow();
   }
-  lastButtonState = buttonState;
+  delay(100);
 }
