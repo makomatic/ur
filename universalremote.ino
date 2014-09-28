@@ -198,6 +198,9 @@ void loadConfig()
 
 void getIR()
 {
+// we have to wait for input here
+// messy serial debug shit... we have to avoid too much tests here
+// better buy a button matrix soon!
   if (irrecv.decode(&results)) {
     digitalWrite(statusLedPin, HIGH);
     storeCode(&results);
